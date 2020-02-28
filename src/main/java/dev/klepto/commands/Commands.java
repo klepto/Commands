@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -23,6 +24,7 @@ import static java.util.stream.Collectors.toCollection;
 @RequiredArgsConstructor
 public class Commands {
 
+    private final Class<?> contextType;
     private final Splitter delimiter;
     private final Map<Class<?>, Function<String, ?>> parsers;
     private final CommandInvokerProvider invokerProvider;
@@ -35,7 +37,8 @@ public class Commands {
     }
 
     private void register(Object listener, Method method) {
-        val methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
+        val methodName = method.getDeclaringClass().getSimpleName() + "#" + method.getName();
+        val contextName = contextType.getName();
         checkArgument(method.getReturnType() == void.class,
                 "Command method  '" + methodName + "' must have return type of 'void'.");
 
@@ -49,7 +52,16 @@ public class Commands {
         val helpMessage = command.help().isEmpty() ? null : command.help();
         val accessLevel = command.access() < 0 ? 0 : command.access();
         val parameters = Lists.<CommandParameter>newLinkedList();
-        stream(method.getParameters()).forEach(parameter -> {
+        boolean contextFound = false;
+        for (Parameter parameter : method.getParameters()) {
+            if (!contextFound) {
+                checkArgument(parameter.getType() == contextType,
+                        "First parameter of command method '" + methodName +
+                                "' must match the context type of '" + contextName + "'.");
+                contextFound = true;
+                continue;
+            }
+
             val type = parameter.getType();
             val defaultValue = parameter.isAnnotationPresent(Default.class)
                     ? parameter.getAnnotation(Default.class).value() : null;
@@ -62,7 +74,7 @@ public class Commands {
             }
 
             parameters.add(new CommandParameter(parameter.getType(), defaultValue));
-        });
+        }
 
         val requiredParameters = (int) parameters.stream()
                 .filter(parameter -> parameter.getDefaultValue() == null) .count();

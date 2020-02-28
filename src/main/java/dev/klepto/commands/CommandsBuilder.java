@@ -9,24 +9,22 @@ import java.util.function.Function;
 
 public final class CommandsBuilder {
 
-    public static CommandsBuilder onDelimiter(String delimiter) {
-        return onDelimiter(Splitter.on(delimiter));
+    public static CommandsBuilder forType(Class<?> contextType) {
+        return new CommandsBuilder(contextType);
     }
 
-    public static CommandsBuilder onDelimiter(Splitter delimiter) {
-        return new CommandsBuilder(delimiter);
-    }
-
-    private final Splitter delimiter;
+    private final Class<?> contextType;
+    private Splitter delimiter;
     private CommandInvokerProvider invokerProvider;
     private Map<Class<?>, Function<String, ?>> parsers = Maps.newHashMap();
 
-    private CommandsBuilder(Splitter delimiter) {
-        this.delimiter = delimiter;
+    private CommandsBuilder(Class<?> contextType) {
+        this.contextType = contextType;
         defaults();
     }
 
     private void defaults() {
+        setDelimiter(Splitter.on(" "));
         setInvokerProvider(ReflectiveCommandInvoker::new);
         addParser(byte.class, Byte::parseByte);
         addParser(Byte.class, Byte::parseByte);
@@ -42,6 +40,12 @@ public final class CommandsBuilder {
         addParser(Boolean.class, Boolean::parseBoolean);
         addParser(char.class, CHARACTER_PARSER);
         addParser(Character.class, CHARACTER_PARSER);
+        addParser(String.class, Function.identity());
+    }
+
+    public CommandsBuilder setDelimiter(Splitter delimiter) {
+        this.delimiter = delimiter;
+        return this;
     }
 
     public CommandsBuilder setInvokerProvider(CommandInvokerProvider invokerProvider) {
@@ -55,7 +59,7 @@ public final class CommandsBuilder {
     }
 
     public Commands build() {
-        return new Commands(delimiter, ImmutableMap.copyOf(parsers), invokerProvider);
+        return new Commands(contextType, delimiter, ImmutableMap.copyOf(parsers), invokerProvider);
     }
 
     private static final Function<String, Character> CHARACTER_PARSER = string -> {
