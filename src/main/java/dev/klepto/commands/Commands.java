@@ -118,7 +118,7 @@ public class Commands {
                 parameters.add(value);
             });
 
-            listener.getInvoker().invoke(context, parameters);
+            listener.getInvoker().invoke(context, parameters.toArray());
         } catch (Exception cause) {
             return new CommandResult(ERROR, listener.getHelpMessage(), cause);
         }
