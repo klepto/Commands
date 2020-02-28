@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import dev.klepto.commands.annotation.Command;
+import dev.klepto.commands.annotation.CommandAccess;
 import dev.klepto.commands.annotation.Default;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -50,7 +51,9 @@ public class Commands {
         });
 
         val helpMessage = command.help().isEmpty() ? null : command.help();
-        val accessLevel = command.access() < 0 ? 0 : command.access();
+        val defaultAccessLevel = listener.getClass().isAnnotationPresent(CommandAccess.class)
+                ? listener.getClass().getAnnotation(CommandAccess.class).value() : 0;
+        val accessLevel = command.access() < 0 ? defaultAccessLevel : command.access();
         val parameters = Lists.<CommandParameter>newLinkedList();
         boolean contextFound = false;
         for (Parameter parameter : method.getParameters()) {
