@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static dev.klepto.commands.CommandResult.Type.*;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toCollection;
 
@@ -71,41 +72,46 @@ public class Commands {
         keys.forEach(key -> listeners.put(key, listenerMethod));
     }
 
-    public boolean execute(Object context, String message) {
+    public CommandResult execute(Object context, String message) {
         return execute(context, 0, message);
     }
 
-    public boolean execute(Object context, int accessLevel, String message) {
+    public CommandResult execute(Object context, int accessLevel, String message) {
         val command = message.toLowerCase().trim();
         if (command.isEmpty()) {
-            return false;
+            return new CommandResult(KEY_NOT_FOUND);
         }
 
         val keyAndArguments = Lists.newArrayList(delimiter.split(message));
         val key = keyAndArguments.get(0);
         if (!listeners.containsKey(key)) {
-            return false;
+            return new CommandResult(KEY_NOT_FOUND);
         }
 
         val listener = listeners.get(key);
         if (listener.getAccessLevel() > accessLevel) {
-            return false;
+            return new CommandResult(NO_ACCESS, listener.getHelpMessage());
         }
 
         val arguments = keyAndArguments.stream().skip(1).collect(toCollection(LinkedList::new));
         if (arguments.size() < listener.getRequiredParameterCount()) {
-            return false;
+            return new CommandResult(ARGUMENT_MISMATCH, listener.getHelpMessage());
         }
 
-        val parameters = Lists.newArrayList();
-        listener.getParameters().forEach(parameter -> {
-            String stringValue = !arguments.isEmpty() ? arguments.poll() : parameter.getDefaultValue();
-            Object value = parsers.get(parameter.getType()).apply(stringValue);
-            parameters.add(value);
-        });
+        try {
+            val parameters = Lists.newArrayList();
+            listener.getParameters().forEach(parameter -> {
+                String stringValue = !arguments.isEmpty() ? arguments.poll() : parameter.getDefaultValue();
+                Object value = parsers.get(parameter.getType()).apply(stringValue);
+                parameters.add(value);
+            });
 
-        listener.getInvoker().invoke(context, parameters);
-        return true;
+            listener.getInvoker().invoke(context, parameters);
+        } catch (Exception cause) {
+            return new CommandResult(ERROR, listener.getHelpMessage(), cause);
+        }
+
+        return new CommandResult(SUCCESS);
     }
 
 }
