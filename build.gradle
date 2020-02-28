@@ -1,0 +1,27 @@
+plugins {
+    id 'java-library'
+}
+
+group 'dev.klepto'
+version '0.0.1'
+sourceCompatibility = 1.8
+
+def deps = [
+        guava     : [group: 'com.google.guava', name: 'guava', version: '27.0.1-jre'],
+        classgraph: [group: 'io.github.classgraph', name: 'classgraph', version: '4.6.32'],
+        lombok    : [group: 'org.projectlombok', name: 'lombok', version: '1.18.8'],
+        junit     : [group: 'junit', name: 'junit', version: '4.12']
+]
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation deps.guava
+    implementation deps.classgraph
+    implementation deps.lombok
+    annotationProcessor deps.lombok
+
+    testImplementation deps.junit
+}
