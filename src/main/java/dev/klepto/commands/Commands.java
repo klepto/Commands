@@ -1,18 +1,23 @@
 package dev.klepto.commands;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import dev.klepto.commands.annotation.Command;
+import dev.klepto.commands.annotation.Default;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toCollection;
 
 @RequiredArgsConstructor
 public class Commands {
@@ -20,17 +25,50 @@ public class Commands {
     private final Splitter delimiter;
     private final Map<Class<?>, Function<String, ?>> parsers;
     private final CommandInvokerProvider invokerProvider;
-
     private final Map<String, CommandMethod> listeners = new HashMap<>();
 
     public void register(Object listener) {
-        Arrays.stream(listener.getClass().getMethods())
+        stream(listener.getClass().getMethods())
                 .filter(method -> method.isAnnotationPresent(Command.class))
                 .forEach(method -> register(listener, method));
     }
 
     private void register(Object listener, Method method) {
+        val methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
+        checkArgument(method.getReturnType() == void.class,
+                "Command method  '" + methodName + "' must have return type of 'void'.");
 
+        val command = method.getAnnotation(Command.class);
+        val invoker = invokerProvider.provideInvoker(listener, method);
+        val keys = command.keys().length == 0 ? ImmutableSet.of(method.getName()) : ImmutableSet.copyOf(command.keys());
+        listeners.keySet().stream().filter(keys::contains).findAny().ifPresent(key -> {
+            throw new IllegalArgumentException("Command key '" + key + "' is already assigned to another listener.");
+        });
+
+        val helpMessage = command.help().isEmpty() ? null : command.help();
+        val accessLevel = command.access() < 0 ? 0 : command.access();
+        val parameters = Lists.<CommandParameter>newLinkedList();
+        stream(method.getParameters()).forEach(parameter -> {
+            val type = parameter.getType();
+            val defaultValue = parameter.isAnnotationPresent(Default.class)
+                    ? parameter.getAnnotation(Default.class).value() : null;
+
+            checkArgument(parsers.containsKey(type),
+                    "Command parameter of type '" + type.getName() + "' does not have a parser.");
+            if (parameters.size() > 0 && defaultValue == null) {
+                checkArgument(parameters.getLast().getDefaultValue() == null,
+                        "Only last parameters of a command method '" + methodName + "' can have a default value.");
+            }
+
+            parameters.add(new CommandParameter(parameter.getType(), defaultValue));
+        });
+
+        val requiredParameters = (int) parameters.stream()
+                .filter(parameter -> parameter.getDefaultValue() == null) .count();
+
+        val listenerMethod = new CommandMethod(invoker, keys, helpMessage, accessLevel,
+                ImmutableList.copyOf(parameters), requiredParameters);
+        keys.forEach(key -> listeners.put(key, listenerMethod));
     }
 
     public boolean execute(Object context, String message) {
@@ -54,8 +92,8 @@ public class Commands {
             return false;
         }
 
-        val arguments = keyAndArguments.stream().skip(1).collect(Collectors.toCollection(LinkedList::new));
-        if (arguments.size() < listener.getRequiredParameters().size()) {
+        val arguments = keyAndArguments.stream().skip(1).collect(toCollection(LinkedList::new));
+        if (arguments.size() < listener.getRequiredParameterCount()) {
             return false;
         }
 

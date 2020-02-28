@@ -14,8 +14,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Command {
 
-    String[] keys() default "";
+    String[] keys() default {};
     String help() default "";
-    int access() default 0;
+    int access() default -1;
 
 }

@@ -20,6 +20,6 @@ public class CommandMethod {
     int accessLevel;
 
     List<CommandParameter> parameters;
-    List<CommandParameter> requiredParameters;
+    int requiredParameterCount;
 
 }
