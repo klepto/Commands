@@ -14,6 +14,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CommandAccess {
 
+    /**
+     * The base-line access level for all commands within this class. Note that any access level provided in
+     * {@link Command} annotation will override this option.
+     */
     int value();
 
 }
