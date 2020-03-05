@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 /**
  * Interface for providing {@link CommandInvoker} instances for given command {@link Method Methods}. Default
  * implementation creates new instances of {@link ReflectiveCommandInvoker} and calls command methods via reflection.
- * But if reflection performance is a concern, this interface allows for your own implementation of command call-sites
+ * If reflection performance is a concern, this interface allows for your own implementation of command call-sites
  * such as method handles, custom bytecode generation or use of libraries like Reflectasm.
  *
  * @author <a href="https://github.com/klepto">Augustinas R.</a>

@@ -4,10 +4,10 @@ import dev.klepto.commands.annotation.Command;
 import lombok.Value;
 
 /**
- * Acts as a return type for {@link Commands#execute(Object, int, String)}. Contains information such as if command
- * executed successfully. May contain other relevant information such as {@link Exception} that occurred during command
- * execution, or help message (if provided by {@link Command} annotation) allowing you to notify your users of a correct
- * usage for the command they tried to access.
+ * Acts as a return type for {@link Commands#execute(Object, String)}. Contains information such as if command executed
+ * successfully. May contain other relevant information such as {@link Exception} that occurred during command execution,
+ * or help message (if provided by {@link Command} annotation) allowing you to notify your users of a correct usage for
+ * the command they tried to access.
  *
  * @author <a href="https://github.com/klepto">Augustinas R.</a>
  */
@@ -21,7 +21,7 @@ public class CommandResult {
         KEY_NOT_FOUND,
 
         /**
-         * Indicates that user did not meet access level criteria for accessing this command.
+         * Indicates that user did not meet criteria for one of the command filters.
          */
         NO_ACCESS,
 

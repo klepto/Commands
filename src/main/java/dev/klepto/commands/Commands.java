@@ -35,7 +35,7 @@ import static java.util.Arrays.stream;
  *     <li>Have return type of void.</li>
  *     <li>Have it's first parameter match the context type (usually user, author or origin).</li>
  *     <li>Contain only unique command keys (either set by method name or {@link Command} annotation).</li>
- *     <li>If using {@link DefaultValue} annotation, only use it on last method parameters.</li>
+ *     <li>If using {@link DefaultValue} annotation, only use it on the rightmost method parameters.</li>
  *   </ul>
  * </p>
  *
