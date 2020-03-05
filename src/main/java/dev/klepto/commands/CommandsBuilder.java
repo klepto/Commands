@@ -127,8 +127,8 @@ public final class CommandsBuilder<T> {
      *
      * @return a newly-created instance of {@link Commands}
      */
-    public Commands build() {
-        return new Commands(
+    public Commands<T> build() {
+        return new Commands<>(
                 contextType,
                 delimiter,
                 ImmutableMap.copyOf(parsers),

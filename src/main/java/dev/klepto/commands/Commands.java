@@ -46,9 +46,9 @@ import static java.util.Arrays.stream;
  * @author <a href="https://github.com/klepto">Augustinas R.</a>
  */
 @RequiredArgsConstructor
-public class Commands {
+public class Commands<T> {
 
-    private final Class<?> contextType;
+    private final Class<T> contextType;
     private final Splitter delimiter;
     private final Map<Class<?>, Function<String, ?>> parsers;
     private final Map<Class<? extends Annotation>, CommandFilter<?, ?>> filters;
@@ -141,7 +141,7 @@ public class Commands {
      * @param message the message string
      * @return the command result indicating if command was successfully executed
      */
-    public CommandResult execute(Object context, String message) {
+    public CommandResult execute(T context, String message) {
         val command = message.toLowerCase().trim();
         if (command.isEmpty()) {
             return new CommandResult(KEY_NOT_FOUND);
