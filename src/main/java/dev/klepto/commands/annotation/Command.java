@@ -27,10 +27,4 @@ public @interface Command {
      */
     String help() default "";
 
-    /**
-     * Access-level of this command. If no value provided, attempt will be made to inherit access level from
-     * {@link CommandAccess} of a method container class. If that fails, this value will always default to 0.
-     */
-    int access() default -1;
-
 }

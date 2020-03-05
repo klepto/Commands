@@ -4,21 +4,23 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
+import java.lang.annotation.Annotation;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class CommandsBuilder {
+public final class CommandsBuilder<T> {
 
-    public static CommandsBuilder forType(Class<?> contextType) {
-        return new CommandsBuilder(contextType);
+    public static <T> CommandsBuilder<T> forType(Class<T> contextType) {
+        return new CommandsBuilder<>(contextType);
     }
 
-    private final Class<?> contextType;
+    private final Class<T> contextType;
     private Splitter delimiter;
     private CommandInvokerProvider invokerProvider;
     private Map<Class<?>, Function<String, ?>> parsers = Maps.newHashMap();
+    private Map<Class<? extends Annotation>, CommandFilter<?, ?>> filters = Maps.newHashMap();
 
-    private CommandsBuilder(Class<?> contextType) {
+    private CommandsBuilder(Class<T> contextType) {
         this.contextType = contextType;
         defaults();
     }
@@ -43,23 +45,34 @@ public final class CommandsBuilder {
         addParser(String.class, Function.identity());
     }
 
-    public CommandsBuilder setDelimiter(Splitter delimiter) {
+    public CommandsBuilder<T> setDelimiter(Splitter delimiter) {
         this.delimiter = delimiter;
         return this;
     }
 
-    public CommandsBuilder setInvokerProvider(CommandInvokerProvider invokerProvider) {
+    public CommandsBuilder<T> setInvokerProvider(CommandInvokerProvider invokerProvider) {
         this.invokerProvider = invokerProvider;
         return this;
     }
 
-    public <T> CommandsBuilder addParser(Class<T> type, Function<String, T> parser) {
+    public <P> CommandsBuilder<T> addParser(Class<P> type, Function<String, P> parser) {
         parsers.put(type, parser);
         return this;
     }
 
+    public <A extends Annotation> CommandsBuilder<T> addFilter(Class<A> type, CommandFilter<T, A> filter) {
+        filters.put(type, filter);
+        return this;
+    }
+
     public Commands build() {
-        return new Commands(contextType, delimiter, ImmutableMap.copyOf(parsers), invokerProvider);
+        return new Commands(
+                contextType,
+                delimiter,
+                ImmutableMap.copyOf(parsers),
+                ImmutableMap.copyOf(filters),
+                invokerProvider
+        );
     }
 
     private static final Function<String, Character> CHARACTER_PARSER = string -> {

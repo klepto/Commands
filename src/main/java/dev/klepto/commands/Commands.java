@@ -5,22 +5,22 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import dev.klepto.commands.annotation.Command;
-import dev.klepto.commands.annotation.CommandAccess;
 import dev.klepto.commands.annotation.Default;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static dev.klepto.commands.CommandResult.Type.*;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toCollection;
 
 /**
  * Parses & dispatches text-based commands to methods annotated with {@link Command} annotation.
@@ -51,6 +51,7 @@ public class Commands {
     private final Class<?> contextType;
     private final Splitter delimiter;
     private final Map<Class<?>, Function<String, ?>> parsers;
+    private final Map<Class<? extends Annotation>, CommandFilter<?, ?>> filters;
     private final CommandInvokerProvider invokerProvider;
     private final Map<String, CommandMethod> commandMethods = new HashMap<>();
 
@@ -90,9 +91,16 @@ public class Commands {
         });
 
         val helpMessage = command.help().isEmpty() ? null : command.help();
-        val defaultAccessLevel = container.getClass().isAnnotationPresent(CommandAccess.class)
-                ? container.getClass().getAnnotation(CommandAccess.class).value() : 0;
-        val accessLevel = command.access() < 0 ? defaultAccessLevel : command.access();
+        val filters = Stream.concat(
+                this.filters.keySet().stream().filter(container.getClass()::isAnnotationPresent),
+                this.filters.keySet().stream().filter(method::isAnnotationPresent)
+        ).map(type -> {
+            Annotation annotation = method.getAnnotation(type);
+            if (annotation == null) {
+                annotation = container.getClass().getAnnotation(type);
+            }
+            return new CommandMethodFilter(annotation, this.filters.get(type));
+        }).collect(Collectors.toSet());
         val parameters = Lists.<CommandParameter>newLinkedList();
         boolean contextFound = false;
         for (Parameter parameter : method.getParameters()) {
@@ -112,7 +120,7 @@ public class Commands {
                     "Command parameter of type '" + type.getName() + "' does not have a parser.");
             if (parameters.size() > 0 && defaultValue == null) {
                 checkArgument(parameters.getLast().getDefaultValue() == null,
-                        "Only last parameters of a command method '" + methodName + "' can have a default value.");
+                        "Only rightmost parameters of a command method '" + methodName + "' can have a default value.");
             }
 
             parameters.add(new CommandParameter(parameter.getType(), defaultValue));
@@ -121,32 +129,19 @@ public class Commands {
         val requiredParameters = (int) parameters.stream()
                 .filter(parameter -> parameter.getDefaultValue() == null).count();
 
-        val commandMethod = new CommandMethod(invoker, keys, helpMessage, accessLevel,
+        val commandMethod = new CommandMethod(invoker, keys, helpMessage, ImmutableSet.copyOf(filters),
                 ImmutableList.copyOf(parameters), requiredParameters);
         keys.forEach(key -> commandMethods.put(key, commandMethod));
-    }
-
-    /**
-     * Attempts to execute a command for a given text-based message with default access level.
-     * @see Commands#execute(Object, int, String) 
-     *
-     * @param context the message context
-     * @param message the message string
-     * @return the command result indicating if command was successfully executed
-     */
-    public CommandResult execute(Object context, String message) {
-        return execute(context, 0, message);
     }
 
     /**
      * Attempts to execute a command for a given text-based message.
      *
      * @param context the message context (usually author/user)
-     * @param accessLevel the access level
      * @param message the message string
      * @return the command result indicating if command was successfully executed
      */
-    public CommandResult execute(Object context, int accessLevel, String message) {
+    public CommandResult execute(Object context, String message) {
         val command = message.toLowerCase().trim();
         if (command.isEmpty()) {
             return new CommandResult(KEY_NOT_FOUND);
@@ -159,19 +154,20 @@ public class Commands {
         }
 
         val commandMethod = commandMethods.get(key);
-        if (commandMethod.getAccessLevel() > accessLevel) {
-            return new CommandResult(NO_ACCESS, commandMethod.getHelpMessage());
+        val arguments = ImmutableList.copyOf(keyAndArguments.subList(1,keyAndArguments.size()));
+        if (commandMethod.getFilters().stream().anyMatch(filter -> !filter.filter(context, key, arguments))) {
+            return new CommandResult(NO_ACCESS);
         }
 
-        val arguments = keyAndArguments.stream().skip(1).collect(toCollection(LinkedList::new));
         if (arguments.size() < commandMethod.getRequiredParameterCount()) {
             return new CommandResult(ARGUMENT_MISMATCH, commandMethod.getHelpMessage());
         }
 
+        val argumentsQueue = Lists.newLinkedList(arguments);
         try {
             val parameters = Lists.newArrayList();
             commandMethod.getParameters().forEach(parameter -> {
-                String stringValue = !arguments.isEmpty() ? arguments.poll() : parameter.getDefaultValue();
+                String stringValue = !argumentsQueue.isEmpty() ? argumentsQueue.poll() : parameter.getDefaultValue();
                 Object value = parsers.get(parameter.getType()).apply(stringValue);
                 parameters.add(value);
             });

@@ -18,7 +18,7 @@ public class CommandMethod {
     CommandInvoker invoker;
     Set<String> keys;
     String helpMessage;
-    int accessLevel;
+    Set<CommandMethodFilter> filters;
 
     List<CommandParameter> parameters;
     int requiredParameterCount;
