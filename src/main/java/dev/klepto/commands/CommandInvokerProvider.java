@@ -16,7 +16,7 @@ public interface CommandInvokerProvider {
      * Provides a {@link CommandInvoker} for a given command method.
      *
      * @param container the object containing command method
-     * @param method   the command method
+     * @param method    the command method
      * @return a command invoker that will only invoke given command method
      */
     CommandInvoker provideInvoker(Object container, Method method);

@@ -22,5 +22,6 @@ public class CommandMethod {
 
     List<CommandParameter> parameters;
     int requiredParameterCount;
+    boolean limitedParameters;
 
 }

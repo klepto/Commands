@@ -1,11 +1,13 @@
 package dev.klepto.commands;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import dev.klepto.commands.annotation.Command;
 import dev.klepto.commands.annotation.DefaultValue;
+import dev.klepto.commands.annotation.Remaining;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
@@ -13,6 +15,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -102,8 +105,9 @@ public class Commands<T> {
             return new CommandMethodFilter(annotation, this.filters.get(type));
         }).collect(Collectors.toSet());
         val parameters = Lists.<CommandParameter>newLinkedList();
+        val methodParameters = method.getParameters();
         boolean contextFound = false;
-        for (Parameter parameter : method.getParameters()) {
+        for (Parameter parameter : methodParameters) {
             if (!contextFound) {
                 checkArgument(parameter.getType() == contextType,
                         "First parameter of command method '" + methodName +
@@ -128,9 +132,9 @@ public class Commands<T> {
 
         val requiredParameters = (int) parameters.stream()
                 .filter(parameter -> parameter.getDefaultValue() == null).count();
-
+        val limitedParameters = methodParameters[methodParameters.length - 1].isAnnotationPresent(Remaining.class);
         val commandMethod = new CommandMethod(invoker, keys, helpMessage, ImmutableSet.copyOf(filters),
-                ImmutableList.copyOf(parameters), requiredParameters);
+                ImmutableList.copyOf(parameters), requiredParameters, limitedParameters);
         keys.forEach(key -> commandMethods.put(key, commandMethod));
     }
 
@@ -147,13 +151,18 @@ public class Commands<T> {
             return new CommandResult(KEY_NOT_FOUND);
         }
 
-        val keyAndArguments = Lists.newArrayList(delimiter.split(message));
+        List<String> keyAndArguments = Lists.newArrayList(delimiter.split(message));
         val key = keyAndArguments.get(0);
         if (!commandMethods.containsKey(key)) {
             return new CommandResult(KEY_NOT_FOUND);
         }
 
         val commandMethod = commandMethods.get(key);
+        if (commandMethod.isLimitedParameters() && !commandMethod.getParameters().isEmpty()) {
+            val splitter = delimiter.limit(commandMethod.getParameters().size() + 1);
+            keyAndArguments = Lists.newArrayList(splitter.split(message));
+        }
+
         val arguments = ImmutableList.copyOf(keyAndArguments.subList(1,keyAndArguments.size()));
         if (commandMethod.getFilters().stream().anyMatch(filter -> !filter.filter(context, key, arguments))) {
             return new CommandResult(NO_ACCESS);
