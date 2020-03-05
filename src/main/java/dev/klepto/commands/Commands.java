@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import dev.klepto.commands.annotation.Command;
-import dev.klepto.commands.annotation.Default;
+import dev.klepto.commands.annotation.DefaultValue;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
@@ -35,7 +35,7 @@ import static java.util.Arrays.stream;
  *     <li>Have return type of void.</li>
  *     <li>Have it's first parameter match the context type (usually user, author or origin).</li>
  *     <li>Contain only unique command keys (either set by method name or {@link Command} annotation).</li>
- *     <li>If using {@link Default} annotation, only use it on last method parameters.</li>
+ *     <li>If using {@link DefaultValue} annotation, only use it on last method parameters.</li>
  *   </ul>
  * </p>
  *
@@ -113,8 +113,8 @@ public class Commands {
             }
 
             val type = parameter.getType();
-            val defaultValue = parameter.isAnnotationPresent(Default.class)
-                    ? parameter.getAnnotation(Default.class).value() : null;
+            val defaultValue = parameter.isAnnotationPresent(DefaultValue.class)
+                    ? parameter.getAnnotation(DefaultValue.class).value() : null;
 
             checkArgument(parsers.containsKey(type),
                     "Command parameter of type '" + type.getName() + "' does not have a parser.");

@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Default {
+public @interface DefaultValue {
 
     /**
      * The default argument value to be parsed as a command parameter.
