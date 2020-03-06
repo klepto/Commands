@@ -1,16 +1,16 @@
 plugins {
     id 'java-library'
+    id 'jacoco'
 }
 
 group 'dev.klepto'
 version '0.0.1'
-sourceCompatibility = 1.8
 
 def deps = [
-        guava     : [group: 'com.google.guava', name: 'guava', version: '27.0.1-jre'],
-        classgraph: [group: 'io.github.classgraph', name: 'classgraph', version: '4.6.32'],
-        lombok    : [group: 'org.projectlombok', name: 'lombok', version: '1.18.8'],
-        junit     : [group: 'junit', name: 'junit', version: '4.12']
+        guava : [group: 'com.google.guava', name: 'guava', version: '27.0.1-jre'],
+        truth : [group: 'com.google.truth', name: 'truth', version: '1.0.1'],
+        lombok: [group: 'org.projectlombok', name: 'lombok', version: '1.18.8'],
+        junit : [group: 'junit', name: 'junit', version: '4.12']
 ]
 
 repositories {
@@ -19,9 +19,19 @@ repositories {
 
 dependencies {
     implementation deps.guava
-    implementation deps.classgraph
     implementation deps.lombok
     annotationProcessor deps.lombok
 
     testImplementation deps.junit
+    testImplementation deps.truth
+    testAnnotationProcessor deps.lombok
+}
+
+task showJacocoReport(type: Exec) {
+    def os = org.gradle.internal.os.OperatingSystem.current()
+    if (os.isWindows()) {
+        workingDir jacocoTestReport.reports.html.destination
+        commandLine 'cmd', '/c', 'start', 'index.html'
+    }
+    dependsOn test, jacocoTestReport
 }
