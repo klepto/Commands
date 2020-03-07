@@ -5,9 +5,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A builder for creating {@link Commands} instances. Ensures runtime type safety & immutability of command parser
@@ -149,6 +153,9 @@ public final class CommandsBuilder<T> {
      * @return this builder instance
      */
     public <A extends Annotation> CommandsBuilder<T> addFilter(Class<A> type, CommandFilter<T, A> filter) {
+        checkArgument(type.isAnnotationPresent(Retention.class)
+                && type.getAnnotation(Retention.class).value() == RetentionPolicy.RUNTIME,
+                "Filter annotation '" + type.getName() + "' must be annotated with: @Retention(RetentionPolicy.RUNTIME)");
         filters.put(type, filter);
         return this;
     }
