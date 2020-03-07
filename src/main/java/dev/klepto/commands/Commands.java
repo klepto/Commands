@@ -29,7 +29,7 @@ import static java.util.Arrays.stream;
  * Parses & dispatches text-based commands to methods annotated with {@link Command} annotation.
  *
  * <p>Commands removes the manual-labor involved in parsing text-based commands by automatically parsing strings into
- * java objects, selecting appropriate command keys and checking access level of the user.</p>
+ * java objects, selecting appropriate command keys and applying domain-specific filters.</p>
  *
  * <h2>Commands Contract</h2>
  * <p>In-order for command methods to function, a method annotated with {@link Command} annotation must:
@@ -44,7 +44,7 @@ import static java.util.Arrays.stream;
  *
  * <p>If any rules of the contract are broken, {@link Commands} will throw a {@link IllegalArgumentException} when
  * calling {@link Commands#register(Object)}. Due to annotation-driven configuration not being compile-time safe, it's
- * highly suggested to register your command containers during boot-time.</p>
+ * highly advised to register your command containers during boot-time.</p>
  *
  * @author <a href="https://github.com/klepto">Augustinas R.</a>
  */
