@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import java.lang.annotation.Annotation;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 /**
  * A builder for creating {@link Commands} instances. Ensures runtime type safety & immutability of command parser
@@ -49,7 +50,7 @@ public final class CommandsBuilder<T> {
      * Internal method for setting default builder settings.
      */
     private void defaults() {
-        setDelimiter(Splitter.on(" "));
+        setDelimiter(' ');
         setInvokerProvider(ReflectiveCommandInvoker::new);
         addParser(byte.class, Byte::parseByte);
         addParser(Byte.class, Byte::parseByte);
@@ -69,12 +70,42 @@ public final class CommandsBuilder<T> {
     }
 
     /**
+     * Sets a given character as the command argument delimiter.
+     *
+     * @param delimiter the argument delimiter
+     * @return this builder instance
+     */
+    public CommandsBuilder<T> setDelimiter(char delimiter) {
+        return setDelimiter(Splitter.on(delimiter));
+    }
+
+    /**
+     * Sets a given string as the command argument delimiter.
+     *
+     * @param delimiter the argument delimiter
+     * @return this builder instance
+     */
+    public CommandsBuilder<T> setDelimiter(String delimiter) {
+        return setDelimiter(Splitter.on(delimiter));
+    }
+
+    /**
+     * Sets a given regex pattern as the command argument delimiter.
+     *
+     * @param delimiter the argument delimiter
+     * @return this builder instance
+     */
+    public CommandsBuilder<T> setDelimiter(Pattern delimiter) {
+        return setDelimiter(Splitter.on(delimiter));
+    }
+
+    /**
      * Sets the command argument delimiter. Default delimiter is a space character.
      *
      * @param delimiter the argument delimiter
      * @return this builder instance
      */
-    public CommandsBuilder<T> setDelimiter(Splitter delimiter) {
+    private CommandsBuilder<T> setDelimiter(Splitter delimiter) {
         this.delimiter = delimiter;
         return this;
     }
