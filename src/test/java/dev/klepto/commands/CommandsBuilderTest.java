@@ -22,7 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 public class CommandsBuilderTest {
 
     @Test
-    public void setDelimiterShouldMatchCommandsDelimiter() {
+    public void setDelimiter_MatchesCommandsDelimiter() {
         val builder = CommandsBuilder.forType(User.class);
         val defaultDelimiterCommands = builder.build();
         val hyphenDelimiterCommands = builder.setDelimiter('-').build();
@@ -55,7 +55,7 @@ public class CommandsBuilderTest {
     }
 
     @Test
-    public void setInvokerProviderShouldMatchCommandsInvokerProvider() {
+    public void setInvokerProvider_MatchesCommandsInvokerProvider() {
         val invokerAccessed = new AtomicBoolean(false);
         val invokerProvider = (CommandInvokerProvider) (container, method) ->
                 (CommandInvoker) (context, parameters) -> invokerAccessed.set(true);
@@ -67,7 +67,7 @@ public class CommandsBuilderTest {
     }
 
     @Test
-    public void addParserShouldMatchCommandsParser() {
+    public void addParser_MatchesCommandsParser() {
         val commands = CommandsBuilder.forType(User.class).addParser(String.class, argument -> "bye").build();
         val receivedInput = new AtomicReference<String>();
         commands.register(new CommandListener(receivedInput::set));
@@ -77,7 +77,7 @@ public class CommandsBuilderTest {
     }
 
     @Test
-    public void addFilterShouldMatchCommandsFilter() {
+    public void addFilter_MatchesCommandsFilter() {
         val commands = CommandsBuilder.forType(User.class).addFilter(AdminAccess.class, new AdminFilter()).build();
         commands.register(new CommandListener(input -> {}));
 
@@ -91,7 +91,7 @@ public class CommandsBuilderTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void addFilterWithoutRuntimeRetentionShouldThrowException() {
+    public void addFilter_WithoutRuntimeRetention_ThrowsException() {
         CommandsBuilder.forType(User.class)
                 .addFilter(NoRetentionAdminAccess.class, new NoRetentionAdminFilter()).build();
     }
