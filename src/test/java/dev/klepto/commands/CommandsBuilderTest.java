@@ -32,10 +32,10 @@ public class CommandsBuilderTest {
         val user = new User();
         val receivedInput = new AtomicReference<String>();
         val inputConsumer = (Consumer<String>) receivedInput::set;
-        defaultDelimiterCommands.register(new CommandListener(inputConsumer));
-        hyphenDelimiterCommands.register(new CommandListener(inputConsumer));
-        doubleUnderscoreDelimiterCommands.register(new CommandListener(inputConsumer));
-        caretDelimiterCommands.register(new CommandListener(inputConsumer));
+        defaultDelimiterCommands.register(new CommandContainer(inputConsumer));
+        hyphenDelimiterCommands.register(new CommandContainer(inputConsumer));
+        doubleUnderscoreDelimiterCommands.register(new CommandContainer(inputConsumer));
+        caretDelimiterCommands.register(new CommandContainer(inputConsumer));
 
         defaultDelimiterCommands.execute(user, "test hello");
         assertThat(receivedInput.get()).isEqualTo("hello");
@@ -60,7 +60,7 @@ public class CommandsBuilderTest {
         val invokerProvider = (CommandInvokerProvider) (container, method) ->
                 (CommandInvoker) (context, parameters) -> invokerAccessed.set(true);
         val commands = CommandsBuilder.forType(User.class).setInvokerProvider(invokerProvider).build();
-        commands.register(new CommandListener(string -> {}));
+        commands.register(new CommandContainer(string -> {}));
         commands.execute(new User(), "test hello");
 
         assertThat(invokerAccessed.get()).isTrue();
@@ -70,7 +70,7 @@ public class CommandsBuilderTest {
     public void addParser_MatchesCommandsParser() {
         val commands = CommandsBuilder.forType(User.class).addParser(String.class, argument -> "bye").build();
         val receivedInput = new AtomicReference<String>();
-        commands.register(new CommandListener(receivedInput::set));
+        commands.register(new CommandContainer(receivedInput::set));
         commands.execute(new User(), "test hello");
 
         assertThat(receivedInput.get()).isEqualTo("bye");
@@ -79,7 +79,7 @@ public class CommandsBuilderTest {
     @Test
     public void addFilter_MatchesCommandsFilter() {
         val commands = CommandsBuilder.forType(User.class).addFilter(AdminAccess.class, new AdminFilter()).build();
-        commands.register(new CommandListener(input -> {}));
+        commands.register(new CommandContainer(input -> {}));
 
         val user = new User();
         val noAccessResult = commands.execute(user, "admintest");
@@ -97,7 +97,7 @@ public class CommandsBuilderTest {
     }
 
     @RequiredArgsConstructor
-    private static class CommandListener {
+    private static class CommandContainer {
         private final Consumer<String> inputConsumer;
 
         @Command
