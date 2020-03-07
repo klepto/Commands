@@ -88,7 +88,8 @@ public class Commands<T> {
 
         val command = method.getAnnotation(Command.class);
         val invoker = invokerProvider.provideInvoker(container, method);
-        val keys = command.keys().length == 0 ? ImmutableSet.of(method.getName()) : ImmutableSet.copyOf(command.keys());
+        val keys = (command.keys().length == 0 ? Stream.of(method.getName()) : Stream.of(command.keys()))
+                .map(String::toLowerCase).collect(Collectors.toSet());
         commandMethods.keySet().stream().filter(keys::contains).findAny().ifPresent(key -> {
             throw new IllegalArgumentException("Command key '" + key + "' is already assigned to another container.");
         });
@@ -146,13 +147,12 @@ public class Commands<T> {
      * @return the command result indicating if command was successfully executed
      */
     public CommandResult execute(T context, String message) {
-        val command = message.toLowerCase().trim();
-        if (command.isEmpty()) {
+        if (message.trim().isEmpty()) {
             return new CommandResult(KEY_NOT_FOUND);
         }
 
         List<String> keyAndArguments = Lists.newArrayList(delimiter.split(message));
-        val key = keyAndArguments.get(0);
+        val key = keyAndArguments.get(0).toLowerCase();
         if (!commandMethods.containsKey(key)) {
             return new CommandResult(KEY_NOT_FOUND);
         }
