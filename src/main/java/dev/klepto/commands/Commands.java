@@ -1,9 +1,7 @@
 package dev.klepto.commands;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import dev.klepto.commands.annotation.Command;
 import dev.klepto.commands.annotation.DefaultValue;
@@ -13,15 +11,12 @@ import lombok.val;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static dev.klepto.commands.CommandResult.Type.*;
 import static java.util.Arrays.stream;
 
@@ -38,7 +33,6 @@ import static java.util.Arrays.stream;
  *     <li>Have return type of void.</li>
  *     <li>Have it's first parameter match the context type (usually user, author or origin).</li>
  *     <li>Contain only unique command keys (either set by method name or {@link Command} annotation).</li>
- *     <li>If using {@link DefaultValue} annotation, only use it on the rightmost method parameters.</li>
  *   </ul>
  * </p>
  *
@@ -78,65 +72,59 @@ public class Commands<T> {
      *
      * @param container the command method container
      * @param method    the  command method
-     * @throws IllegalArgumentException if command method contract is violated, {@see Commands} documentation.
+     * @throws IllegalArgumentException if command method contract is violated, {@see Commands} documentation
      */
     private void register(Object container, Method method) throws IllegalArgumentException {
-        val methodName = method.getDeclaringClass().getSimpleName() + "#" + method.getName();
-        val contextName = contextType.getName();
-        checkArgument(method.getReturnType() == void.class,
-                "Command method  '" + methodName + "' must have return type of 'void'.");
-
-        val command = method.getAnnotation(Command.class);
-        val invoker = invokerProvider.provideInvoker(container, method);
-        val keys = (command.keys().length == 0 ? Stream.of(method.getName()) : Stream.of(command.keys()))
-                .map(String::toLowerCase).collect(Collectors.toSet());
-        commandMethods.keySet().stream().filter(keys::contains).findAny().ifPresent(key -> {
-            throw new IllegalArgumentException("Command key '" + key + "' is already assigned to another container.");
-        });
-
-        val helpMessage = command.help().isEmpty() ? null : command.help();
-        val filters = Stream.concat(
-                this.filters.keySet().stream().filter(container.getClass()::isAnnotationPresent),
-                this.filters.keySet().stream().filter(method::isAnnotationPresent)
-        ).map(type -> {
-            Annotation annotation = method.getAnnotation(type);
-            if (annotation == null) {
-                annotation = container.getClass().getAnnotation(type);
-            }
-            return new CommandMethodFilter(annotation, this.filters.get(type));
-        }).collect(Collectors.toSet());
-        val parameters = Lists.<CommandParameter>newLinkedList();
-        val methodParameters = method.getParameters();
-        boolean contextFound = false;
-        for (Parameter parameter : methodParameters) {
-            if (!contextFound) {
-                checkArgument(parameter.getType() == contextType,
-                        "First parameter of command method '" + methodName +
-                                "' must match the context type of '" + contextName + "'.");
-                contextFound = true;
-                continue;
-            }
-
-            val type = parameter.getType();
-            val defaultValue = parameter.isAnnotationPresent(DefaultValue.class)
-                    ? parameter.getAnnotation(DefaultValue.class).value() : null;
-
-            checkArgument(parsers.containsKey(type),
-                    "Command parameter of type '" + type.getName() + "' does not have a parser.");
-            if (parameters.size() > 0 && defaultValue == null) {
-                checkArgument(parameters.getLast().getDefaultValue() == null,
-                        "Only rightmost parameters of a command method '" + methodName + "' can have a default value.");
-            }
-
-            parameters.add(new CommandParameter(parameter.getType(), defaultValue));
+        if (method.getReturnType() != void.class) {
+            registerError(container, method, "Command method must have return type of 'void'.");
         }
 
-        val requiredParameters = (int) parameters.stream()
-                .filter(parameter -> parameter.getDefaultValue() == null).count();
+        val command = method.getAnnotation(Command.class);
+        val keyStream = (command.keys().length == 0 ? Stream.of(method.getName()) : Stream.of(command.keys()));
+        val keys = keyStream.map(String::toLowerCase).collect(toImmutableSet());
+        if (keys.stream().anyMatch(commandMethods.keySet()::contains)) {
+            registerError(container, method, "Duplicate command key.");
+        }
+
+        val invoker = invokerProvider.provideInvoker(container, method);
+        val helpMessage = command.help().isEmpty() ? null : command.help();
+
+        val filterStream = Stream.concat(
+                filters.keySet().stream().filter(container.getClass()::isAnnotationPresent),
+                filters.keySet().stream().filter(method::isAnnotationPresent)
+        );
+
+        val filters = filterStream.map(annotationType -> {
+            Annotation annotation = method.isAnnotationPresent(annotationType)
+                    ? method.getAnnotation(annotationType) : container.getClass().getAnnotation(annotationType);
+            return new CommandMethodFilter(annotation, this.filters.get(annotationType));
+        }).collect(toImmutableSet());
+
+        val methodParameters = method.getParameters();
+        if (methodParameters.length == 0 || methodParameters[0].getType() != contextType) {
+            registerError(container, method, "First parameter of command method must match the context type.");
+        }
+
+        val parameters = Stream.of(methodParameters).skip(1).map(methodParameter -> {
+            Class<?> type = methodParameter.getType();
+            if (!parsers.containsKey(type)) {
+                registerError(container, method, "Command parameter of type '" + type.getName() + "' does not have a parser.");
+            }
+
+            String defaultValue = methodParameter.isAnnotationPresent(DefaultValue.class)
+                    ? methodParameter.getAnnotation(DefaultValue.class).value() : null;
+            return new CommandParameter(type, defaultValue);
+        }).collect(toImmutableList());
+
+        val requiredParameters = (int) parameters.stream().map(CommandParameter::getDefaultValue).filter(Objects::isNull).count();
         val limitedParameters = methodParameters[methodParameters.length - 1].isAnnotationPresent(Remaining.class);
-        val commandMethod = new CommandMethod(invoker, keys, helpMessage, ImmutableSet.copyOf(filters),
-                ImmutableList.copyOf(parameters), requiredParameters, limitedParameters);
+        val commandMethod = new CommandMethod(invoker, keys, helpMessage, filters, parameters, requiredParameters, limitedParameters);
         keys.forEach(key -> commandMethods.put(key, commandMethod));
+    }
+
+    private void registerError(Object container, Method method, String message) {
+        throw new IllegalArgumentException("Error while registering command method '"
+                + container.getClass().getSimpleName() + "." + method.getName() + "': " + message);
     }
 
     /**
@@ -176,8 +164,8 @@ public class Commands<T> {
         try {
             val parameters = Lists.newArrayList();
             commandMethod.getParameters().forEach(parameter -> {
-                String stringValue = !argumentsQueue.isEmpty() ? argumentsQueue.poll() : parameter.getDefaultValue();
-                Object value = parsers.get(parameter.getType()).apply(stringValue);
+                val stringValue = parameter.getDefaultValue() != null ? parameter.getDefaultValue() : argumentsQueue.poll();
+                val value = parsers.get(parameter.getType()).apply(stringValue);
                 parameters.add(value);
             });
 

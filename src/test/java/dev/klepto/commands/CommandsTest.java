@@ -94,14 +94,6 @@ public class CommandsTest {
         CommandsBuilder.forType(User.class).build().register(container);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void register_WithNonDefaultArgumentAfterDefaultArgument_ThrowsException() {
-        val container = new Object() {
-            @Command public void test(User user, @DefaultValue("hello") String inputA, String inputB) { }
-        };
-        CommandsBuilder.forType(User.class).build().register(container);
-    }
-
     @Test
     public void execute_WithNonExistingKey_ReturnsKeyNotFound() {
         val commands = CommandsBuilder.forType(User.class).build();
