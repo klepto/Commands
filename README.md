@@ -1,5 +1,5 @@
 # Commands
-![Gradle CI](https://github.com/klepto/Commands/workflows/Gradle%20CI/badge.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/klepto/Commands/blob/master/LICENSE)
+[![Gradle CI](https://github.com/klepto/Commands/workflows/ci/badge.svg)](https://github.com/klepto/Commands/actions?query=workflow%3Aci) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/klepto/Commands/blob/master/LICENSE)
 
 Commands removes the manual-labor involved in parsing text-based commands by automatically parsing strings into java objects,
 selecting appropriate command listener methods, handling default values and applying domain-specific filters.
