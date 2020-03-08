@@ -3,8 +3,8 @@ plugins {
     id 'jacoco'
 }
 
-group 'dev.klepto'
-version '0.0.1'
+group 'dev.klepto.commands'
+version '1.0.0'
 
 def deps = [
         guava : [group: 'com.google.guava', name: 'guava', version: '27.0.1-jre'],
