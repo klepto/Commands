@@ -1,8 +1,20 @@
 # Commands
-[![Gradle CI](https://github.com/klepto/Commands/workflows/ci/badge.svg)](https://github.com/klepto/Commands/actions?query=workflow%3Aci) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/klepto/Commands/blob/master/LICENSE)
+[![Maven Central](https://img.shields.io/maven-central/v/dev.klepto.commands/commands.svg)](https://search.maven.org/search?q=g:dev.klepto.commands) [![Gradle CI](https://github.com/klepto/Commands/workflows/ci/badge.svg)](https://github.com/klepto/Commands/actions?query=workflow%3Aci) [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://github.com/klepto/Commands/blob/master/LICENSE)
 
 Commands removes the manual-labor involved in parsing text-based commands by automatically parsing strings into java objects,
 selecting appropriate command listener methods, handling default values and applying domain-specific filters.
+
+## Installation
+To use Commands with gradle, please use the following configuration:
+```gradle
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "dev.klepto.commands:commands:1.0.0"
+}
+```
 
 ## Getting Started
 Configuring a command method.
@@ -27,7 +39,7 @@ commands.execute(user, message);
 ```
 
 ## Argument Parsers
-By default, commands are only capable of parsing strings into primitive types. 
+By default, Commands are only capable of parsing strings into primitive types. 
 You can add your domain specific parsers by using `addParser` within `CommandsBuilder`.
 ```java
 Commands commands = CommandsBuilder.forType(User.class)
@@ -43,7 +55,7 @@ public void kick(User user, User victim) {
 ```
 
 ## Default Values
-You can specify default values for the rightmost parameters of your command using `@DefaultValue` annotation.
+You can specify default values using `@DefaultValue` annotation. Parameters without default value always get parsed first, so be warry of parameter order when using the annotation.
 ```java
 @Command(keys = {"!kick", "!k"})
 public void kick(User user, User victim, @DefaultValue("10") int duration) {
@@ -61,9 +73,7 @@ This is useful when you want to apply domain-specific filters such as checking t
 Defining custom annotation.
 ```java
 @Retention(RetentionPolicy.RUNTIME)
-public @interface AdministratorAccess {
-
-}
+public @interface AdministratorAccess { }
 ```
 
 Defining CommandFilter for our annotation.
