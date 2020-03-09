@@ -21,7 +21,7 @@ import static dev.klepto.commands.CommandResult.Type.*;
 import static java.util.Arrays.stream;
 
 /**
- * Parses & dispatches text-based commands to methods annotated with {@link Command} annotation.
+ * Parses and dispatches text-based commands to methods annotated with {@link Command} annotation.
  *
  * <p>Commands removes the manual-labor involved in parsing text-based commands by automatically parsing strings into
  * java objects, selecting appropriate command keys and applying domain-specific filters.</p>
@@ -34,7 +34,7 @@ import static java.util.Arrays.stream;
  *     <li>Have it's first parameter match the context type (usually user, author or origin).</li>
  *     <li>Contain only unique command keys (either set by method name or {@link Command} annotation).</li>
  *   </ul>
- * </p>
+ *
  *
  * <p>If any rules of the contract are broken, {@link Commands} will throw a {@link IllegalArgumentException} when
  * calling {@link Commands#register(Object)}. Due to annotation-driven configuration not being compile-time safe, it's

@@ -8,7 +8,7 @@ import java.util.Set;
 
 /**
  * Data container for a method annotated with {@link Command} annotation. Command configurations are extracted with
- * help of annotations & reflection, this class acts as a container for extracted configuration data for later use.
+ * help of annotations and reflection, this class acts as a container for extracted configuration data for later use.
  *
  * @author <a href="https://github.com/klepto">Augustinas R.</a>
  */

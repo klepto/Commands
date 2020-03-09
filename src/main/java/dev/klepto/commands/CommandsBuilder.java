@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * A builder for creating {@link Commands} instances. Ensures runtime type safety & immutability of command parser
+ * A builder for creating {@link Commands} instances. Ensures runtime type safety and immutability of command parser
  * settings. Builder instances can be re-used; it is safe to call {@code build()} multiple times to create multiple
  * instances of command parsers.
  *
