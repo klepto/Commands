@@ -4,7 +4,6 @@ plugins {
 }
 
 group 'dev.klepto.commands'
-version '1.0.0'
 
 def deps = [
         guava : [group: 'com.google.guava', name: 'guava', version: '28.2-jre'],
@@ -35,3 +34,5 @@ task showJacocoReport(type: Exec) {
     }
     dependsOn test, jacocoTestReport
 }
+
+apply from: 'deploy.gradle'

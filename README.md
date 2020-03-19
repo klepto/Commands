@@ -55,7 +55,7 @@ public void kick(User user, User victim) {
 ```
 
 ## Default Values
-You can specify default values using `@DefaultValue` annotation. Parameters without default value always get parsed first, so be warry of parameter order when using the annotation.
+You can specify default values for the rightmost parameters using `@DefaultValue` annotation.
 ```java
 @Command(keys = {"!kick", "!k"})
 public void kick(User user, User victim, @DefaultValue("10") int duration) {

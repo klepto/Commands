@@ -6,13 +6,16 @@ import com.google.common.collect.Lists;
 import dev.klepto.commands.annotation.Command;
 import dev.klepto.commands.annotation.DefaultValue;
 import dev.klepto.commands.annotation.Remaining;
+
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -33,6 +36,7 @@ import static java.util.Arrays.stream;
  *     <li>Have return type of void.</li>
  *     <li>Have it's first parameter match the context type (usually user, author or origin).</li>
  *     <li>Contain only unique command keys (either set by method name or {@link Command} annotation).</li>
+ *     <li>If using {@link DefaultValue} annotation, only use it on the rightmost method parameters.</li>
  *   </ul>
  *
  *
@@ -105,6 +109,14 @@ public class Commands<T> {
             registerError(container, method, "First parameter of command method must match the context type.");
         }
 
+        IntStream.range(1, methodParameters.length).forEach(index -> {
+            val previous = methodParameters[index - 1].isAnnotationPresent(DefaultValue.class);
+            val current = methodParameters[index].isAnnotationPresent(DefaultValue.class);
+            if (previous && !current) {
+                registerError(container, method, "Only rightmost parameters can have a default value.");
+            }
+        });
+
         val parameters = Stream.of(methodParameters).skip(1).map(methodParameter -> {
             Class<?> type = methodParameter.getType();
             if (!parsers.containsKey(type)) {
@@ -164,7 +176,7 @@ public class Commands<T> {
         try {
             val parameters = Lists.newArrayList();
             commandMethod.getParameters().forEach(parameter -> {
-                val stringValue = parameter.getDefaultValue() != null ? parameter.getDefaultValue() : argumentsQueue.poll();
+                val stringValue = !argumentsQueue.isEmpty() ? argumentsQueue.poll() : parameter.getDefaultValue();
                 val value = parsers.get(parameter.getType()).apply(stringValue);
                 parameters.add(value);
             });
