@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation "dev.klepto.commands:commands:1.0.0"
+    implementation "dev.klepto.commands:commands:1.0.1"
 }
 ```
 
