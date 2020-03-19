@@ -35,4 +35,6 @@ task showJacocoReport(type: Exec) {
     dependsOn test, jacocoTestReport
 }
 
-apply from: 'deploy.gradle'
+if (file('deploy.gralde').exists()) {
+    apply from: 'deploy.gradle'
+}
